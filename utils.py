@@ -117,13 +117,19 @@ def metric_card(title, value, unit, threshold, current_val, icon="", is_offline=
         </div>
     """, unsafe_allow_html=True)
 
-def get_gateway_status(df):
-    """Checks if the last data packet arrived within the last 15 seconds."""
-    if df.empty or 'fetch_time' not in df.columns:
+def get_gateway_status(current_data):
+    """Monitors the explicit Pico W heartbeat to detect connection loss."""
+    if current_data is None or 'heartbeat' not in current_data:
         return False
+        
+    hb = current_data.get('heartbeat', 0)
     
-    # Get the time the latest row was actually fetched
-    last_fetch = df['fetch_time'].iloc[-1]
-    
-    # If the current time is more than 15 seconds past the last fetch, it's offline
-    return (time.time() - last_fetch) <= 15
+    if 'last_heartbeat' not in st.session_state:
+        st.session_state.last_heartbeat = hb
+        st.session_state.last_hb_time = time.time()
+        
+    if hb != st.session_state.last_heartbeat:
+        st.session_state.last_heartbeat = hb
+        st.session_state.last_hb_time = time.time()
+        
+    return (time.time() - st.session_state.last_hb_time) <= 15

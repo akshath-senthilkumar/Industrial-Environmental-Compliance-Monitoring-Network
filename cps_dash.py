@@ -25,7 +25,7 @@ df = get_dashboard_data()
 # Protect against app crashes if the database is completely empty on first boot
 if not df.empty:
     current_data = df.iloc[-1]
-    gateway_online = get_gateway_status(df)
+    gateway_online = get_gateway_status(current_data)
 else:
     # Safe fallback zeros while waiting for the Fog Node to connect
     current_data = {'Temperature (°C)': 0, 'AQI (MQ-135)': 0, 'Noise Level (dB)': 0, 'status_n1': 'OFF', 'status_n2': 'OFF', 'status_n3': 'OFF'}
