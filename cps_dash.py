@@ -5,7 +5,7 @@ from datetime import datetime
 from streamlit_autorefresh import st_autorefresh  # Add this!
 
 # Swap generate_data for get_dashboard_data
-from utils import get_dashboard_data, get_custom_css, metric_card, get_gateway_status
+from utils import get_dashboard_data, get_custom_css, metric_card, get_gateway_status, THRESHOLDS 
 
 st.set_page_config(
     page_title="Industrial Regulatory Dashboard",
@@ -28,7 +28,7 @@ if not df.empty:
     gateway_online = get_gateway_status(df)
 else:
     # Safe fallback zeros while waiting for the Fog Node to connect
-    current_data = {'Temperature (°C)': 0, 'AQI (MQ-135)': 0, 'Noise Level (dB)': 0}
+    current_data = {'Temperature (°C)': 0, 'AQI (MQ-135)': 0, 'Noise Level (dB)': 0, 'status_n1': 'OFF', 'status_n2': 'OFF', 'status_n3': 'OFF'}
     gateway_online = False
 
 with st.sidebar:
@@ -64,14 +64,19 @@ if view_mode == "📊 Main Dashboard":
     st.title("🏭 Continuous Compliance Dashboard")
     st.markdown("Automated generation of continuous logs and AI-based trend detection for factory auditors.")
 
-    # KPIs Top Row - Removed Humidity and PM Emissions
+    # Check individual node statuses (Assuming N1=Temp, N2=AQI, N3=Noise)
+    n1_offline = current_data.get('status_n1') == 'OFF'
+    n2_offline = current_data.get('status_n2') == 'OFF'
+    n3_offline = current_data.get('status_n3') == 'OFF'
+
+    # KPIs Top Row - Passing the offline flags and synced thresholds
     col1, col2, col3 = st.columns(3)
     with col1:
-        metric_card("Temperature", current_data['Temperature (°C)'], "°C", 35, current_data['Temperature (°C)'], "🌡️")
+        metric_card("Temperature", current_data['Temperature (°C)'], "°C", THRESHOLDS['temp'], current_data['Temperature (°C)'], "🌡️", n1_offline)
     with col2:
-        metric_card("Air Quality", current_data['AQI (MQ-135)'], "AQI", 150, current_data['AQI (MQ-135)'], "💨")
+        metric_card("Air Quality", current_data['AQI (MQ-135)'], "AQI", THRESHOLDS['aqi'], current_data['AQI (MQ-135)'], "💨", n2_offline)
     with col3:
-        metric_card("Noise Level", current_data['Noise Level (dB)'], "dB", 80, current_data['Noise Level (dB)'], "🔊")
+        metric_card("Noise Level", current_data['Noise Level (dB)'], "dB", THRESHOLDS['noise'], current_data['Noise Level (dB)'], "🔊", n3_offline)
 
     st.markdown("<br><br>", unsafe_allow_html=True)
 
@@ -79,27 +84,17 @@ if view_mode == "📊 Main Dashboard":
     colA, colB = st.columns(2)
     with colA:
         st.subheader("🤖 AI Trend Detection: Air Quality")
-        fig_aqi = px.area(df, x='Timestamp', y=['AQI (MQ-135)'],
-                          color_discrete_sequence=['#FF4B4B'])
-        fig_aqi.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)', 
-            plot_bgcolor='rgba(255,255,255,0.02)', 
-            font_color='#E0E6ED',
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-        )
-        st.plotly_chart(fig_aqi, width='stretch')
+        if not df.empty:
+            fig_aqi = px.area(df, x='Timestamp', y=['AQI (MQ-135)'], color_discrete_sequence=['#FF4B4B'])
+            fig_aqi.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(255,255,255,0.02)', font_color='#E0E6ED', legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+            st.plotly_chart(fig_aqi, width='stretch')
         
     with colB:
         st.subheader("🌡️ Ambient Working Conditions (Temp)")
-        fig_th = px.line(df, x='Timestamp', y=['Temperature (°C)'], 
-                         color_discrete_sequence=['#00FFAA'])
-        fig_th.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)', 
-            plot_bgcolor='rgba(255,255,255,0.02)', 
-            font_color='#E0E6ED',
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-        )
-        st.plotly_chart(fig_th, width='stretch')
+        if not df.empty:
+            fig_th = px.line(df, x='Timestamp', y=['Temperature (°C)'], color_discrete_sequence=['#00FFAA'])
+            fig_th.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(255,255,255,0.02)', font_color='#E0E6ED', legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+            st.plotly_chart(fig_th, width='stretch')
 
 elif view_mode == "⚙️ Hardware Architecture":
     st.title("⚙️ System Architecture & Hardware Specs")

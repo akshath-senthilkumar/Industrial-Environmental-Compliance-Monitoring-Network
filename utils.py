@@ -7,6 +7,13 @@ import time
 
 FIREBASE_URL = "https://compliancenet-9cc51-default-rtdb.asia-southeast1.firebasedatabase.app/live_data.json"
 
+# --- SYNCHRONIZED THRESHOLDS (Must match your Pico W exactly) ---
+THRESHOLDS = {
+    "temp": 35.0,
+    "aqi": 150.0,
+    "noise": 80.0
+}
+
 def get_custom_css():
     return """
     <style>
@@ -21,7 +28,13 @@ def get_custom_css():
             box-shadow: 0 8px 16px rgba(0,0,0,0.2);
             transition: transform 0.2s;
         }
-        .metric-card:hover {
+        /* NEW: Dimmed offline card styling */
+        .metric-card.offline {
+            opacity: 0.4;
+            filter: grayscale(100%);
+            border: 1px dashed #FF4B4B;
+        }
+        .metric-card:not(.offline):hover {
             transform: translateY(-5px);
             background: rgba(255,255,255,0.08);
         }
@@ -67,7 +80,12 @@ def get_dashboard_data():
                 'sound_db': 'Noise Level (dB)'
             })
             
-            # ADD THIS: Record exactly when this data was fetched
+            # Ensure status columns exist even if Firebase misses them on first boot
+            for col in ['status_n1', 'status_n2', 'status_n3']:
+                if col not in df.columns:
+                    df[col] = "ON"
+            
+            # Record exactly when this data was fetched
             df['fetch_time'] = time.time() 
             
             # Create the Timestamp for your Plotly graphs
@@ -79,16 +97,25 @@ def get_dashboard_data():
         st.error(f"Error: {e}")
     return pd.DataFrame()
 
-def metric_card(title, value, unit, threshold, current_val, icon=""):
-    color = "#00FFAA" if current_val <= threshold else "#FF4B4B"
+def metric_card(title, value, unit, threshold, current_val, icon="", is_offline=False):
+    """Updated to support the offline 'dimmed' state."""
+    if is_offline:
+        card_class = "metric-card offline"
+        display_val = "<span style='color:#FF4B4B; font-size: 1.5rem;'>OFFLINE</span>"
+        subtext = "<span style='color:#FF4B4B;'>Check sensor power</span>"
+    else:
+        card_class = "metric-card"
+        color = "#00FFAA" if current_val <= threshold else "#FF4B4B"
+        display_val = f"<span style='color:{color}'>{value:.1f} <span style='font-size: 1.2rem; color: #A0AEC0;'>{unit}</span></span>"
+        subtext = f"Threshold: {threshold} {unit}"
+
     st.markdown(f"""
-        <div class="metric-card">
+        <div class="{card_class}">
             <div class="metric-label">{icon} {title}</div>
-            <div class="metric-value" style="color: {color}">{value:.1f} <span style="font-size: 1.2rem; color: #A0AEC0;">{unit}</span></div>
-            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.4);">Threshold: {threshold} {unit}</div>
+            <div class="metric-value">{display_val}</div>
+            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.4);">{subtext}</div>
         </div>
     """, unsafe_allow_html=True)
-
 
 def get_gateway_status(df):
     """Checks if the last data packet arrived within the last 15 seconds."""
