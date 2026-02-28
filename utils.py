@@ -182,6 +182,10 @@ def generate_audit_report_pdf(df, current_data, gateway_online):
     def compliance_status(val, threshold):
         return ("COMPLIANT", ACCENT) if val <= threshold else ("VIOLATION", RED)
 
+    def safe_text(s):
+        """Encode to latin-1, replacing any unmappable char with '?'."""
+        return str(s).encode("latin-1", errors="replace").decode("latin-1")
+
     # ── PDF Setup ──────────────────────────────────────────────────────────────
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=18)
@@ -200,22 +204,22 @@ def generate_audit_report_pdf(df, current_data, gateway_online):
     pdf.set_xy(12, 7)
     pdf.set_font("Helvetica", "B", 18)
     pdf.set_text_color(*WHITE)
-    pdf.cell(0, 10, "ComplianceNet Pro", ln=0)
+    pdf.cell(0, 10, safe_text("ComplianceNet Pro"), ln=0)
 
     pdf.set_xy(12, 19)
     pdf.set_font("Helvetica", "", 9)
     pdf.set_text_color(*MUTED)
-    pdf.cell(0, 6, "Industrial Environmental Compliance Monitoring Network", ln=0)
+    pdf.cell(0, 6, safe_text("Industrial Environmental Compliance Monitoring Network"), ln=0)
 
     # Report label top-right
     pdf.set_xy(130, 9)
     pdf.set_font("Helvetica", "B", 10)
     pdf.set_text_color(*ACCENT)
-    pdf.cell(68, 6, "AUDIT REPORT", align="R", ln=0)
+    pdf.cell(68, 6, safe_text("AUDIT REPORT"), align="R", ln=0)
     pdf.set_xy(130, 17)
     pdf.set_font("Helvetica", "", 8)
     pdf.set_text_color(*MUTED)
-    pdf.cell(68, 5, f"Generated: {datetime_str}", align="R", ln=0)
+    pdf.cell(68, 5, safe_text(f"Generated: {datetime_str}"), align="R", ln=0)
 
     # ── Meta Row ───────────────────────────────────────────────────────────────
     pdf.set_xy(12, 46)
@@ -223,13 +227,13 @@ def generate_audit_report_pdf(df, current_data, gateway_online):
     pdf.set_text_color(*MUTED)
     gw_label = "ONLINE" if gateway_online else "OFFLINE"
     gw_color  = ACCENT if gateway_online else RED
-    pdf.cell(0, 6, f"Reporting Period: {date_str}  |  Records analysed: {len(df)}  |  Gateway: {gw_label}", ln=1)
+    pdf.cell(0, 6, safe_text(f"Reporting Period: {date_str}  |  Records analysed: {len(df)}  |  Gateway: {gw_label}"), ln=1)
 
     # ── Section: Current Readings ──────────────────────────────────────────────
     pdf.set_xy(12, 58)
     pdf.set_font("Helvetica", "B", 11)
     pdf.set_text_color(*WHITE)
-    pdf.cell(0, 8, "Current Sensor Readings", ln=1)
+    pdf.cell(0, 8, safe_text("Current Sensor Readings"), ln=1)
 
     # Thin accent underline
     pdf.set_fill_color(*ACCENT)
@@ -262,25 +266,25 @@ def generate_audit_report_pdf(df, current_data, gateway_online):
         pdf.set_xy(x + 6, y_start + 4)
         pdf.set_font("Helvetica", "B", 8)
         pdf.set_text_color(*MUTED)
-        pdf.cell(col_w - 8, 5, label.upper(), ln=0)
+        pdf.cell(col_w - 8, 5, safe_text(label.upper()), ln=0)
 
         # Value
         pdf.set_xy(x + 6, y_start + 12)
         pdf.set_font("Helvetica", "B", 16)
         pdf.set_text_color(*WHITE)
-        pdf.cell(col_w - 8, 10, f"{val:.1f} {unit}", ln=0)
+        pdf.cell(col_w - 8, 10, safe_text(f"{val:.1f} {unit}"), ln=0)
 
         # Threshold line
         pdf.set_xy(x + 6, y_start + 24)
         pdf.set_font("Helvetica", "", 7)
         pdf.set_text_color(*MUTED)
-        pdf.cell(col_w - 8, 5, f"Limit: {threshold} {unit}", ln=0)
+        pdf.cell(col_w - 8, 5, safe_text(f"Limit: {threshold} {unit}"), ln=0)
 
         # Status badge
         pdf.set_xy(x + 6, y_start + 30)
         pdf.set_font("Helvetica", "B", 7)
         pdf.set_text_color(*status_color)
-        pdf.cell(col_w - 8, 4, status_text, ln=0)
+        pdf.cell(col_w - 8, 4, safe_text(status_text), ln=0)
 
     pdf.set_y(y_start + 44)
 
@@ -288,7 +292,7 @@ def generate_audit_report_pdf(df, current_data, gateway_online):
     pdf.set_font("Helvetica", "B", 11)
     pdf.set_text_color(*WHITE)
     pdf.set_x(12)
-    pdf.cell(0, 8, "Compliance Summary", ln=1)
+    pdf.cell(0, 8, safe_text("Compliance Summary"), ln=1)
     pdf.set_fill_color(*ACCENT)
     pdf.rect(12, pdf.get_y(), 186, 0.5, 'F')
     pdf.ln(4)
@@ -404,8 +408,8 @@ def generate_audit_report_pdf(df, current_data, gateway_online):
     pdf.set_font("Helvetica", "", 7)
     pdf.set_text_color(*MUTED)
     pdf.cell(0, 5,
-             f"ComplianceNet Pro  |  Auto-generated report  |  {datetime_str}  |  "
-             "For regulatory use only — verify against primary sensor logs.",
+             safe_text(f"ComplianceNet Pro  |  Auto-generated report  |  {datetime_str}  |  "
+                       "For regulatory use only - verify against primary sensor logs."),
              align="C", ln=0)
 
     return bytes(pdf.output())
