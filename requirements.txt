@@ -1,11 +1,6 @@
-<<<<<<< HEAD
 streamlit
 pandas
 numpy
 plotly
-=======
-streamlit
-pandas
-numpy
-plotly
->>>>>>> 01694e4fa9169c179addd249f629dd78d4786758
+streamlit-autorefresh
+requests

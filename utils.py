@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 import streamlit as st
+import requests
+import time
 
 FIREBASE_URL = "https://compliancenet-9cc51-default-rtdb.asia-southeast1.firebasedatabase.app/live_data.json"
 
@@ -92,3 +94,18 @@ def metric_card(title, value, unit, threshold, current_val, icon=""):
             <div style="font-size: 0.8rem; color: rgba(255,255,255,0.4);">Threshold: {threshold} {unit}</div>
         </div>
     """, unsafe_allow_html=True)
+
+
+def get_gateway_status(df):
+    """Monitors the data stream to detect if the Fog Node has gone offline."""
+    if df.empty:
+        return False
+    current_data = df.iloc[-1]
+    fingerprint = f"{current_data.get('Temperature (°C)')}_{current_data.get('AQI (MQ-135)')}_{current_data.get('Noise Level (dB)')}"
+    if 'gateway_fingerprint' not in st.session_state:
+        st.session_state.gateway_fingerprint = ""
+        st.session_state.gateway_last_update = time.time()
+    if fingerprint != st.session_state.gateway_fingerprint:
+        st.session_state.gateway_fingerprint = fingerprint
+        st.session_state.gateway_last_update = time.time()
+    return (time.time() - st.session_state.gateway_last_update) <= 15
