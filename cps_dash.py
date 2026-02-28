@@ -73,7 +73,7 @@ if view_mode == "📊 Main Dashboard":
     st.markdown("""
     <div style="margin-bottom: 8px;">
         <h1 style="margin:0; font-size:1.9rem; color:#E0E6ED;">
-            🏭 Continuous Compliance Dashboard
+            🏭 Continuous Environmental Compliance Dashboard
         </h1>
         <p style="color:#A0AEC0; margin-top:4px; font-size:0.95rem;">
             Real-time environmental monitoring from factory floor sensor nodes

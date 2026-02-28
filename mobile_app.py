@@ -3,7 +3,7 @@ from streamlit_autorefresh import st_autorefresh
 from utils import get_dashboard_data, get_custom_css, get_gateway_status, THRESHOLDS
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="EcoMonitor Field App", page_icon="📱", layout="centered")
+st.set_page_config(page_title="ComplianceNet Pro", page_icon="📱", layout="centered")
 
 # Auto-refresh every 5 seconds
 st_autorefresh(interval=5000, limit=None, key="mobile_dashboard_refresh")
@@ -177,8 +177,8 @@ now_str = datetime.now().strftime('%H:%M:%S')
 # ── Render ────────────────────────────────────────────────────────────────────
 st.markdown(f"""
 <div class="app-header">
-    <h2>EcoMonitor Field App</h2>
-    <div class="subtitle">● Zigbee Network Sync</div>
+    <h2>ComplianceNet Pro</h2>
+    <div class="subtitle">Industrial Environmental Compliance Monitoring Network</div>
 </div>
 
 <div class="m-card {'offline' if n1_offline else ''}">
