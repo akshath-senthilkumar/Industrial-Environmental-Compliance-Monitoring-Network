@@ -50,7 +50,7 @@ def get_custom_css():
     """
 
 def get_dashboard_data():
-    """Fetches the latest live data from Firebase and formats it for Streamlit."""
+    """Fetches live data and adds a server-side arrival timestamp."""
     try:
         req_url = f'{FIREBASE_URL}?orderBy="$key"&limitToLast=100'
         response = requests.get(req_url)
@@ -60,26 +60,24 @@ def get_dashboard_data():
             records = list(raw_data.values())
             df = pd.DataFrame(records)
             
+            # Rename columns
             df = df.rename(columns={
                 'temperature': 'Temperature (°C)',
                 'gas_aqi': 'AQI (MQ-135)',
                 'sound_db': 'Noise Level (dB)'
             })
             
-            # --- THE FIX: Automatically generate timestamps for the charts ---
+            # ADD THIS: Record exactly when this data was fetched
+            df['fetch_time'] = time.time() 
+            
+            # Create the Timestamp for your Plotly graphs
             if not df.empty:
                 df['Timestamp'] = pd.date_range(end=pd.Timestamp.now(), periods=len(df), freq='5s')
             
             return df
-            
     except Exception as e:
-        st.error(f"Firebase Connection Error: {e}")
-        
-    # Added 'Timestamp' to the empty fallback dataframe
-    return pd.DataFrame(columns=[
-        'Timestamp', 'Temperature (°C)', 'AQI (MQ-135)', 'Noise Level (dB)', 
-        'status_n1', 'status_n2', 'status_n3'
-    ])
+        st.error(f"Error: {e}")
+    return pd.DataFrame()
 
 def metric_card(title, value, unit, threshold, current_val, icon=""):
     color = "#00FFAA" if current_val <= threshold else "#FF4B4B"
@@ -93,15 +91,12 @@ def metric_card(title, value, unit, threshold, current_val, icon=""):
 
 
 def get_gateway_status(df):
-    """Monitors the data stream to detect if the Fog Node has gone offline."""
-    if df.empty:
+    """Checks if the last data packet arrived within the last 15 seconds."""
+    if df.empty or 'fetch_time' not in df.columns:
         return False
-    current_data = df.iloc[-1]
-    fingerprint = f"{current_data.get('Temperature (°C)')}_{current_data.get('AQI (MQ-135)')}_{current_data.get('Noise Level (dB)')}"
-    if 'gateway_fingerprint' not in st.session_state:
-        st.session_state.gateway_fingerprint = ""
-        st.session_state.gateway_last_update = time.time()
-    if fingerprint != st.session_state.gateway_fingerprint:
-        st.session_state.gateway_fingerprint = fingerprint
-        st.session_state.gateway_last_update = time.time()
-    return (time.time() - st.session_state.gateway_last_update) <= 15
+    
+    # Get the time the latest row was actually fetched
+    last_fetch = df['fetch_time'].iloc[-1]
+    
+    # If the current time is more than 15 seconds past the last fetch, it's offline
+    return (time.time() - last_fetch) <= 15

@@ -5,7 +5,7 @@ from datetime import datetime
 from streamlit_autorefresh import st_autorefresh  # Add this!
 
 # Swap generate_data for get_dashboard_data
-from utils import get_dashboard_data, get_custom_css, metric_card 
+from utils import get_dashboard_data, get_custom_css, metric_card, get_gateway_status
 
 st.set_page_config(
     page_title="Industrial Regulatory Dashboard",
@@ -25,22 +25,25 @@ df = get_dashboard_data()
 # Protect against app crashes if the database is completely empty on first boot
 if not df.empty:
     current_data = df.iloc[-1]
+    gateway_online = get_gateway_status(df)
 else:
     # Safe fallback zeros while waiting for the Fog Node to connect
     current_data = {'Temperature (°C)': 0, 'AQI (MQ-135)': 0, 'Noise Level (dB)': 0}
-
-# ---------------------------------------------------------
-# EVERYTHING BELOW THIS LINE STAYS EXACTLY THE SAME!
-# with st.sidebar:
-# ...
+    gateway_online = False
 
 with st.sidebar:
     st.markdown("## 🌍 ComplianceNet Pro")
     st.caption("AI-Driven Regulatory Monitoring")
     st.markdown("---")
     st.markdown("### 📡 Network Status")
-    st.success("✅ **Zigbee Mesh**: 3 Sensor Nodes Active")
-    st.info("🔄 **Collector Node**: Syncing (12ms ping)")
+    
+    if gateway_online:
+        st.success("✅ **Gateway Node**: ONLINE")
+        st.info("🔄 **Collector Node**: Syncing (12ms ping)")
+    else:
+        st.error("❌ **Gateway Node**: OFFLINE")
+        st.warning("⚠️ **Collector Node**: Connection Lost")
+        
     st.warning("🤖 **Microcontroller Process**: Analyzing Logs")
     st.caption(f"Last Gateway Sync: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     st.markdown("---")

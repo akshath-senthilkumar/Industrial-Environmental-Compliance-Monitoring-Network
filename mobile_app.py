@@ -1,6 +1,6 @@
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh  # <-- 1. Added Auto-refresh
-from utils import get_dashboard_data, get_custom_css  # <-- 2. Swapped to live data
+from utils import get_dashboard_data, get_custom_css, get_gateway_status  # <-- 2. Swapped to live data
 
 # Ensure mobile-friendly initial viewport scaling 
 st.set_page_config(page_title="Mobile Field App", page_icon="📱", layout="centered")
@@ -38,20 +38,15 @@ st.markdown("""
             border: 1px solid rgba(255,255,255,0.08);
             backdrop-filter: blur(10px);
         }
-        .sync-btn {
-            background: linear-gradient(90deg, #00FFAA, #00B8FF);
-            color: #0E1117;
-            border: none;
-            padding: 15px 20px;
-            border-radius: 25px;
-            width: 100%;
-            font-weight: 800;
-            font-size: 1.1rem;
-            cursor: pointer;
-            display: block;
-            margin: 20px auto;
+        
+        /* NEW: Status badge styling for the Offline Detector */
+        .status-badge {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 12px;
             text-align: center;
-            box-shadow: 0 4px 15px rgba(0,255,170,0.3);
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
         }
     </style>
 """, unsafe_allow_html=True)
@@ -61,9 +56,19 @@ df = get_dashboard_data()
 
 if not df.empty:
     current_data = df.iloc[-1]
+    gateway_online = get_gateway_status(df)
 else:
     # Safe fallback zeros while waiting for the Fog Node to connect
     current_data = {'Temperature (°C)': 0, 'AQI (MQ-135)': 0, 'Noise Level (dB)': 0}
+    gateway_online = False
+
+# Mobile UI logic for the Watchdog
+if gateway_online:
+    fog_status_text = "🟢 GATEWAY ONLINE"
+    fog_status_color = "#00FFAA"
+else:
+    fog_status_text = "🔴 GATEWAY OFFLINE"
+    fog_status_color = "#FF4B4B"
 
 # 5. Dynamic Warning Logic for AQI
 aqi_val = current_data['AQI (MQ-135)']
@@ -89,8 +94,9 @@ st.markdown(f"""
         <span style="color:#A0AEC0; font-size: 0.9rem; text-transform: uppercase;">🔊 Acoustic (KY-038)</span><br>
         <span style="font-size:1.8rem; font-weight:bold; color: #E0E6ED;">{current_data['Noise Level (dB)']:.1f} dB</span>
     </div>
-    <div class="sync-btn">
-        SYNC DATA to GATEWAY
+    
+    <div class="status-badge">
+        <span style="color: {fog_status_color}; font-weight: 800; font-size: 1.1rem; letter-spacing: 1px;">{fog_status_text}</span><br>
     </div>
 </div>
 """, unsafe_allow_html=True)
