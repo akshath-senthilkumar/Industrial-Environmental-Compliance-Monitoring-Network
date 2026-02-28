@@ -49,39 +49,35 @@ def get_custom_css():
     </style>
     """
 
-@st.cache_data
 def get_dashboard_data():
     """Fetches the latest live data from Firebase and formats it for Streamlit."""
     try:
-        # We use a query parameter to only grab the last 100 entries.
-        # This prevents your dashboard from downloading megabytes of old data every 5 seconds!
         req_url = f'{FIREBASE_URL}?orderBy="$key"&limitToLast=100'
         response = requests.get(req_url)
         
         if response.status_code == 200 and response.json() is not None:
             raw_data = response.json()
-            
-            # Firebase returns a dictionary of unique IDs. We just want the values.
             records = list(raw_data.values())
-            
-            # Convert the list of dictionaries into a Pandas DataFrame
             df = pd.DataFrame(records)
             
-            # Rename the columns so your existing Plotly graphs understand them
             df = df.rename(columns={
                 'temperature': 'Temperature (°C)',
                 'gas_aqi': 'AQI (MQ-135)',
                 'sound_db': 'Noise Level (dB)'
             })
             
+            # --- THE FIX: Automatically generate timestamps for the charts ---
+            if not df.empty:
+                df['Timestamp'] = pd.date_range(end=pd.Timestamp.now(), periods=len(df), freq='5s')
+            
             return df
             
     except Exception as e:
         st.error(f"Firebase Connection Error: {e}")
         
-    # If the connection fails or database is empty, return a safe empty DataFrame
+    # Added 'Timestamp' to the empty fallback dataframe
     return pd.DataFrame(columns=[
-        'Temperature (°C)', 'AQI (MQ-135)', 'Noise Level (dB)', 
+        'Timestamp', 'Temperature (°C)', 'AQI (MQ-135)', 'Noise Level (dB)', 
         'status_n1', 'status_n2', 'status_n3'
     ])
 
