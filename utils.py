@@ -5,7 +5,7 @@ import streamlit as st
 import requests
 import time
 
-FIREBASE_URL = "https://compliancenet-9cc51-default-rtdb.asia-southeast1.firebasedatabase.app/live_data.json"
+FIREBASE_URL = "https://compliancenet-9cc51-default-rtdb.asia-southeast1.firebasedatabase.app/sensor_logs.json"
 
 # --- SYNCHRONIZED THRESHOLDS (Must match your Pico W exactly) ---
 THRESHOLDS = {
